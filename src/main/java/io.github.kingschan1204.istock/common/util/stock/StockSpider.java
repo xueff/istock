@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import org.jsoup.Jsoup;
+
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
@@ -26,7 +27,6 @@ import java.util.regex.Pattern;
  **/
 public interface StockSpider {
 
-    static final String REGEX_NUMBER = "^[-+]?([0]{1}(\\.[0-9]+)?|[1-9]{1}\\d*(\\.[0-9]+)?)";
 
     /**
      * 将股票代码转换成新浪接口的格式http://hq.sinajs.cn/list=
@@ -39,8 +39,8 @@ public interface StockSpider {
         if (code.matches("^(sz|sh)\\d{6}$")) {
             return code;
         }
-        //5开头，沪市基金或权证 60开头上证
-        else if (code.matches("^60.*|^5.*")) {
+        //5开头，沪市基金或权证 60开头上证  68开头科创板
+        else if (code.matches("^60.*|68.*|^5.*")) {
             return String.format("sh%s", code);
         }
         //1开头的，是深市基金 00开头是深圳
@@ -116,19 +116,7 @@ public interface StockSpider {
 
     }
 
-    /**
-     * 格式化数据，如果不是数字全部返回-1
-     *
-     * @param value
-     * @return
-     */
-    static Double mathFormat(String value) {
-        String v = value.replaceAll("[^0-9|\\.|\\-]", "");
-        if (v.matches(REGEX_NUMBER)) {
-            return Double.valueOf(v);
-        }
-        return -1D;
-    }
+
 
     /**
      * 启用ssl
@@ -155,23 +143,7 @@ public interface StockSpider {
     }
 
 
-    /**
-     * 得到指定代码的价格
-     * @param stockCode
-     * @return
-     * @throws Exception
-     */
-    JSONArray getStockPrice(String[] stockCode) throws Exception;
 
-
-    /**
-     * 得到指定代码的基本信息
-     *
-     * @param code
-     * @return
-     * @throws Exception
-     */
-    JSONObject getStockInfo(String code) throws Exception;
 
     /**
      * 得到指定代码历史分红
@@ -192,23 +164,6 @@ public interface StockSpider {
      */
     JSONArray getHistoryROE(String code) throws Exception;
 
-
-    /**
-     * 得到所有代码
-     *
-     * @return
-     * @throws Exception
-     */
-    List<String> getAllStockCode() throws Exception;
-
-    /**
-     * 得到股息
-     *
-     * @param page 页码
-     * @return
-     * @throws Exception
-     */
-    JSONObject getDy(int page) throws Exception;
 
 
     /**

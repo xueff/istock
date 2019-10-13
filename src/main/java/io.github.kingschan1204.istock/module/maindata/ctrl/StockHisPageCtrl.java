@@ -1,16 +1,12 @@
 package io.github.kingschan1204.istock.module.maindata.ctrl;
 
 import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBCollection;
-import com.mongodb.DBObject;
-import io.github.kingschan1204.istock.common.util.stock.impl.JisiluSpilder;
 import io.github.kingschan1204.istock.module.maindata.po.*;
 import io.github.kingschan1204.istock.module.maindata.repository.StockRepository;
-import io.github.kingschan1204.istock.module.maindata.services.StockHisRoeService;
+import io.github.kingschan1204.istock.module.maindata.services.StockYearReportService;
 import io.github.kingschan1204.istock.module.maindata.services.StockService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -19,9 +15,8 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
-
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 代码历史数据控制器
@@ -37,7 +32,7 @@ public class StockHisPageCtrl {
     @Autowired
     private StockService stockService;
     @Autowired
-    private StockHisRoeService stockHisRoeService;
+    private StockYearReportService stockYearReportService;
     private final String template_path = "/stock/his/";
 
     @RequestMapping("/stock/his_dy/{code}")
@@ -45,12 +40,12 @@ public class StockHisPageCtrl {
         ModelAndView mav = new ModelAndView(template_path + "his_dy");
         mav.addObject("year", "''");
         mav.addObject("percent", "0");
-        Stock stock = stockRepository.findOne(code);
-        if (null == stock) {
+        Optional<Stock> stock = stockRepository.findById(code);
+        if (!stock.isPresent()) {
             mav.addObject("msg", String.format("代码:%s %s", code, "不存在，或者非A股代码!"));
             return mav;
         }
-        mav.addObject("stock", stock);
+        mav.addObject("stock", stock.get());
         //历年分红
         List<StockDividend> list = stockService.getStockDividend(code);
         if (null != list && list.size() > 0) {
@@ -78,21 +73,21 @@ public class StockHisPageCtrl {
         return mav;
     }
 
-    @RequestMapping("/stock/his_roe/{code}")
+    @RequestMapping("/stock/financial/{code}")
     public ModelAndView getStockHisRoe(@PathVariable String code) {
         ModelAndView mav = new ModelAndView(template_path + "his_roe");
         mav.addObject("roe_year", "''");
         mav.addObject("roe_percent", "0");
-        Stock stock = stockRepository.findOne(code);
-        if (null == stock) {
+        Optional<Stock> stock = stockRepository.findById(code);
+        if (!stock.isPresent()) {
             mav.addObject("msg", String.format("代码:%s %s", code, "不存在，或者非A股代码!"));
             return mav;
         }
-        mav.addObject("stock", stock);
-        List<StockHisRoe> list = stockService.getStockHisRoe(code);
+        mav.addObject("stock", stock.get());
+        List<StockYearReport> list = stockService.getStockHisRoe(code);
         if (null == list || list.size() == 0) {
             try {
-                list = stockHisRoeService.addStockHisRoe(code);
+                list = stockYearReportService.addStockHisRoe(code);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -132,8 +127,9 @@ public class StockHisPageCtrl {
 
         Query query = new Query();
         query.addCriteria(Criteria.where("code").is(code));
-        List<StockHisPbPe> lis = template.find(query, StockHisPbPe.class);
-        if (null == lis || lis.size() == 0) {
+        query.with(new Sort(new Sort.Order(Sort.Direction.ASC,"tradeDate")));
+        List<StockDailyBasic> lis = template.find(query, StockDailyBasic.class);
+        /*if (null == lis || lis.size() == 0) {
             List<String> data = stockService.crawAndSaveHisPbPe(code);
             //价格》日期》pb》pe
             price.append(data.get(0));
@@ -141,13 +137,13 @@ public class StockHisPageCtrl {
             pb.append(data.get(2));
             pe.append(data.get(3));
 
-        } else {
+        } else {*/
             for (int i = 0; i < lis.size(); i++) {
-                StockHisPbPe item = lis.get(i);
-                date.append("'").append(item.getDate()).append("'");
+                StockDailyBasic item = lis.get(i);
+                date.append("'").append(item.getTradeDate()).append("'");
                 pb.append(item.getPb());
                 pe.append(item.getPe());
-                price.append(item.getPrice());
+                price.append(item.getClose());
                 if (i != lis.size() - 1) {
                     date.append(",");
                     pb.append(",");
@@ -155,7 +151,7 @@ public class StockHisPageCtrl {
                     price.append(",");
                 }
 
-            }
+//            }
         }
         mav.addObject("pb", pb.toString());
         mav.addObject("pe", pe.toString());

@@ -8,16 +8,25 @@
     <!-- 动态日志级别 -->
     <jmxConfigurator/>
     <!-- 定义日志文件 输出位置 -->
-    <property name="log_dir" value="./logs/"/>
+    <property name="log_dir" value="/applogs/istock/"/>
     <!-- 日志最大的历史 30天 -->
     <property name="maxHistory" value="30"/>
-
+    <!-- 彩色日志 -->
+    <!-- 彩色日志依赖的渲染类 -->
+    <conversionRule conversionWord="clr" converterClass="org.springframework.boot.logging.logback.ColorConverter" />
+    <conversionRule conversionWord="wex" converterClass="org.springframework.boot.logging.logback.WhitespaceThrowableProxyConverter" />
+    <conversionRule conversionWord="wEx" converterClass="org.springframework.boot.logging.logback.ExtendedWhitespaceThrowableProxyConverter" />
+    <!-- 彩色日志格式 -->
+    <property name="CONSOLE_LOG_PATTERN" value="${CONSOLE_LOG_PATTERN:-%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}}"/>
+    <!--
+    设置日志输出格式
+    %d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger - %msg%n
+    -->
     <!-- ConsoleAppender 控制台输出日志 -->
     <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>
-                <!-- 设置日志输出格式 -->
-                %d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger - %msg%n
+                ${CONSOLE_LOG_PATTERN}
             </pattern>
         </encoder>
     </appender>
@@ -122,6 +131,25 @@
         </encoder>
     </appender>
 
+    <appender name="CORE_LOG" class="ch.qos.logback.core.rolling.RollingFileAppender">               
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!--日志文件输出的文件名-->
+            <FileNamePattern>${log_dir}/core/%d{yyyy-MM-dd}.log</FileNamePattern>
+            <MaxHistory>30</MaxHistory>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+             <!-- 日志输出编码 -->
+            <layout class="ch.qos.logback.classic.PatternLayout">
+              <!--格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度%msg：日志消息，%n是换行符-->
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n </pattern>
+            </layout>
+        </encoder>
+          <!--日志文件最大的大小-->
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+            <MaxFileSize>10MB</MaxFileSize>
+        </triggeringPolicy>
+    </appender>
+
     <!-- root级别 DEBUG -->
     <root>
         <!-- 打印debug级别日志及以上级别日志 -->
@@ -135,10 +163,12 @@
         <!--<appender-ref ref="DEBUG" />
         <appender-ref ref="TRACE" />-->
     </root>
-
-    <logger name="io.github.kingschan1204.istock">
+    <logger name="com.netflix">
+        <level value="ERROR" />
+    </logger>
+    <logger name="io.github.kingschan1204">
         <!-- 打印debug级别日志及以上级别日志 -->
-        <level value="info"/>
+        <level value="INFO"/>
         <!-- 控制台输出 -->
         <!--<appender-ref ref="console"/>-->
         <!-- 文件输出 -->
@@ -148,29 +178,8 @@
         <appender-ref ref="DEBUG"/>
         <appender-ref ref="TRACE"/>
     </logger>
-    <logger name="org.apache.commons">
-        <level value="ERROR"/>
-    </logger>
-    <logger name="org.springframework">
-        <level value="ERROR"/>
-    </logger>
-    <logger name="org.hibernate">
-        <level value="ERROR"/>
-    </logger>
-    <logger name="net.sf.ehcache">
-        <level value="ERROR"/>
-    </logger>
-    <logger name="org.apache.cxf">
-        <level value="ERROR"/>
-    </logger>
-    <logger name="org.springframework.transaction">
-        <level value="DEBUG"/>
-    </logger>
-    <logger name="org.mongodb.driver">
-        <level value="ERROR"/>
-    </logger>
-    <logger name="io.github.kingschan1204.istock.common.util.stock.impl.DefaultSpiderImpl">
-        <level value="ERROR"/>
-    </logger>
 
+    <logger name="io.github.kingschan1204.istock.module.spider.schedule.ScheduleThread" level="INFO">
+        <appender-ref ref="CORE_LOG"/>
+    </logger>
 </configuration>
